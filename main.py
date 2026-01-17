@@ -1,40 +1,64 @@
 from preprocess.local_checks import *
-from Final.TTS_worker import speak
+from workers.TTS_worker import speak_worker
 from Processing.analyze_image import llm_response, encode_image
 import time
 from concurrent.futures import ThreadPoolExecutor
-from preprocess.frame_capture_worker import frame_cap, show_frame
+from workers.camera_worker import camera_worker
+from workers.processing_worker import raw_display_worker, processed_display_worker
+import threading
+import queue  # Add this import
 
 def main():
     """Pipeline: frame capture -> local checks -> text-to-speech"""
 
-    executor = ThreadPoolExecutor(max_workers=2)    
+    # Shared state
+    frame_lock = threading.Lock()
+    latest_frame = None
+    running = True
 
-    while True:
+    # Queue for text to speak (ensures sequential processing)
+    text_queue = queue.Queue()
 
-        frame_cap()
+    # Start speak_worker in its own thread
+    speak_thread = threading.Thread(target=speak_worker, args=(text_queue,))
+    speak_thread.start()
 
-        if (face_check("temp.jpg") and eyes_open_check("temp.jpg") and isnt_blurry("temp.jpg")>30 == False):
-            continue
+    # Camera capture loop (simplified for clarity)
+    cap = cv2.VideoCapture(0)  # Assuming cv2 is imported
+    if not cap.isOpened():
+        raise IOError("Cannot open webcam")
 
-        base64_image = encode_image("temp.jpg")
+    try:
+        while running:
+            ret, frame = cap.read()
+            if not ret:
+                print("Failed to grab frame")
+                continue
 
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            futures = executor.submit(llm_response,base64_image)
-            print("waiting for llm response\n")
-            response = futures.result()
+            with frame_lock:
+                latest_frame = frame
 
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            futures = executor.submit(speak, response)
-            print("waiting for speaking\n")
+            # Analyze the frame (you may want to throttle this, e.g., every few seconds)
+            if latest_frame is not None:
+                # Encode and get LLM response
+                cv2.imwrite("temp.jpg",latest_frame)
+                encoded_image = encode_image("temp.jpg")  # Save frame to temp file if needed
+                response = llm_response(encoded_image)
+                text_queue.put(response)  # Send to speak_worker (blocks if queue is full, but unlikely)
 
-        print("all done, moving on\n")
+            # Display workers (run in executor as before)
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                executor.submit(raw_display_worker, latest_frame, running, frame_lock)
+                executor.submit(processed_display_worker, latest_frame, running, frame_lock)
 
-        if ("Accepted" in response or "accepted" in response):
-            break
+            time.sleep(0.1)  # Adjust loop speed
 
-    cv2.imshow("Final Frame", frame)
-    cv2.waitKey(0)
+    finally:
+        running = False
+        text_queue.put(None)  # Signal speak_worker to stop
+        speak_thread.join()
+        cap.release()
+        cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    result = main()
+    main()

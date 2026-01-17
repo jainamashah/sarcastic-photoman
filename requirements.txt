@@ -1,6 +1,6 @@
+pygame==2.6.0
 numpy>=1.23
 opencv-python>=4.8
 gTTS>=2.5.1
-pygame>=2.5.2
-dotenv==0.9.9
+python-dotenv==0.9.9 
 openai==2.15.0
