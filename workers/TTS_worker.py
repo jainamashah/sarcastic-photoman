@@ -6,7 +6,7 @@ import queue  # Add this import
 
 pygame.mixer.init()
 
-def speak_worker(text_queue):
+def speak_worker(text_queue, frame_lock, latest_frame, processed_frame):
     while True:
         try:
             text = text_queue.get(timeout=1)  # Wait for new text (adjust timeout as needed)
@@ -22,7 +22,10 @@ def speak_worker(text_queue):
             pygame.mixer.music.play()
             # Wait for speech to finish
             while pygame.mixer.music.get_busy():
-                time.sleep(0.1)  # Poll every 100ms
+                time.sleep(0.1)
+            # After speech, update processed_frame to latest_frame
+            with frame_lock:
+                processed_frame[0] = latest_frame[0]
         except queue.Empty:
             continue  # No new text yet, keep waiting
 

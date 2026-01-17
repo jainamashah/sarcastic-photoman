@@ -1,6 +1,9 @@
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
+import time
+import cv2
+import queue
 
 load_dotenv()
 
@@ -38,3 +41,45 @@ def llm_response(image):
         }],
     )
     return response.choices[0].message.content
+
+def analysis_worker(running, frame_lock, latest_frame, processed_frame, text_queue):
+    last_analysis_time = 0
+    analysis_interval = 2.0  # Analyze every 2 seconds
+    while running:
+        current_time = time.time()
+        if current_time - last_analysis_time > analysis_interval:
+            with frame_lock:
+                if latest_frame[0] is not None:
+                    frame_copy = latest_frame[0].copy()
+            if 'frame_copy' in locals():
+                # Set processed_frame to this frame
+                with frame_lock:
+                    processed_frame[0] = frame_copy
+                # Save to temp file for encoding
+                cv2.imwrite("temp.jpg", frame_copy)
+                encoded_image = encode_image("temp.jpg")
+                response = llm_response(encoded_image)
+                text_queue.put(response)
+                last_analysis_time = current_time
+        time.sleep(0.1)
+
+def analysis_worker(running, frame_lock, latest_frame, processed_frame, text_queue):
+    last_analysis_time = 0
+    analysis_interval = 2.0  # Analyze every 2 seconds
+    while running:
+        current_time = time.time()
+        if current_time - last_analysis_time > analysis_interval:
+            with frame_lock:
+                if latest_frame[0] is not None:
+                    frame_copy = latest_frame[0].copy()
+            if 'frame_copy' in locals():
+                # Set processed_frame to this frame
+                with frame_lock:
+                    processed_frame[0] = frame_copy
+                # Save to temp file for encoding
+                cv2.imwrite("temp.jpg", frame_copy)
+                encoded_image = encode_image("temp.jpg")
+                response = llm_response(encoded_image)
+                text_queue.put(response)
+                last_analysis_time = current_time
+        time.sleep(0.1)

@@ -3,7 +3,7 @@ import sys
 import time
 import threading
 
-def camera_worker(running, frame_lock):
+def camera_worker(running, frame_lock, latest_frame):
     cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
@@ -13,7 +13,8 @@ def camera_worker(running, frame_lock):
         ret, frame = cap.read()
         if not ret:
             print("Failed to grab frame")
+            continue
         with frame_lock:
-            latest_frame = frame
+            latest_frame[0] = frame
     
     cap.release()
