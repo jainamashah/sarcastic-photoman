@@ -17,9 +17,9 @@ def frame_cap():
     cap.release()
     if cv2.waitKey(1) & 0xFF == ord("q"):
         return None
-    cv2.imwrite("temp.jpg", frame)
-    return frame
-
-def show_frame(frame):
+    
     if frame is not None:
         cv2.imshow("Webcam Frame", frame)
+
+    cv2.imwrite("temp.jpg", frame)
+    return frame

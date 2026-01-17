@@ -16,8 +16,8 @@ def speak(text):
 
     pygame.mixer.music.load(fp)
     pygame.mixer.music.play()
-    speech_time = sleep_time = 0.4 + (len(text.split()) / 2.5)
-    time.sleep(speech_time)
+    # speech_time = sleep_time = 0.4 + (len(text.split()) / 2.5)
+    # time.sleep(speech_time)
 
 # Example usage
 # speak("Smile a little")

@@ -9,10 +9,6 @@ mtcnn>=0.1.1
 # Pose & landmarks
 mediapipe>=0.10.7
 
-# Machine learning backends
-tensorflow>=2.13
-keras>=2.13
-
 # Utilities
 scipy>=1.10
 pandas>=2.0
@@ -21,3 +17,6 @@ tqdm>=4.65
 # Text-to-speech
 gTTS>=2.5.1
 pygame>=2.5.2
+
+dotenv==0.9.9
+openai==2.15.0
